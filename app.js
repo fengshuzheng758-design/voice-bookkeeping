@@ -28,59 +28,61 @@ const KEYWORD_STORE = 'keywordCategoryMap'; // 关键词→分类记忆表
 /** 默认支出分类（两级结构：大类 → 小类，小类含识别关键词） */
 const DEFAULT_EXPENSE_CATEGORIES = [
   { name: '餐饮', icon: '🍜', subs: [
-    { name: '早饭', keywords: ['早饭', '早餐', '早点'] },
-    { name: '午饭', keywords: ['午饭', '午餐', '中饭'] },
+    // 注：移除"买"/"吃饭"等通用词，避免"买儿童玩具"被误判为"买菜/聚餐"
+    { name: '早饭', keywords: ['早饭', '早餐', '早点', '包子', '油条', '豆浆', '稀饭', '粥', '上午饭'] },
+    { name: '午饭', keywords: ['午饭', '午餐', '中饭', '中餐', '工作餐', '中午', '中午饭'] },
     { name: '晚饭', keywords: ['晚饭', '晚餐'] },
     { name: '宵夜', keywords: ['宵夜', '夜宵', '撸串'] },
-    { name: '零食', keywords: ['零食', '薯片', '瓜子', '饼干', '小吃'] },
-    { name: '饮料', keywords: ['饮料', '奶茶', '咖啡', '可乐', '果汁', '啤酒', '喝酒'] },
-    { name: '买菜', keywords: ['买菜', '蔬菜', '猪肉', '牛肉', '排骨', '鸡肉', '鱼虾', '鸡蛋', '肉'] },
-    { name: '水果', keywords: ['水果', '苹果', '香蕉', '西瓜', '葡萄', '草莓'] },
-    { name: '奶类', keywords: ['牛奶', '酸奶', '奶粉', '鲜奶'] },
+    { name: '零食', keywords: ['零食', '薯片', '瓜子', '饼干', '小吃', '甜点', '巧克力'] },
+    { name: '饮料', keywords: ['饮料', '奶茶', '咖啡', '可乐', '果汁', '啤酒', '喝酒', '星巴克', '喜茶', '瑞幸', '蜜雪', '柠檬茶'] },
+    { name: '买菜', keywords: ['买菜', '蔬菜', '猪肉', '牛肉', '排骨', '鸡肉', '鱼虾', '鸡蛋', '肉', '羊肉', '五花肉', '青菜', '白菜', '萝卜', '西红柿'] },
+    { name: '水果', keywords: ['水果', '苹果', '香蕉', '西瓜', '葡萄', '草莓', '芒果', '橘子', '梨', '樱桃'] },
+    { name: '奶类', keywords: ['牛奶', '酸奶', '奶粉', '鲜奶', '豆奶'] },
     { name: '外卖', keywords: ['外卖'] },
-    { name: '聚餐', keywords: ['聚餐', '吃饭', '火锅', '烧烤', '食堂', '面包', '饭馆'] }
+    { name: '聚餐', keywords: ['聚餐', '火锅', '烧烤', '食堂', '饭馆', '宴请', '下馆子', '海底捞', '烤肉'] }
   ]},
   { name: '交通', icon: '🚗', subs: [
-    { name: '打车', keywords: ['打车', '滴滴', '出租车', '快车', '网约车'] },
-    { name: '公交地铁', keywords: ['地铁', '公交', '公交车'] },
-    { name: '加油', keywords: ['加油', '油费'] },
-    { name: '停车', keywords: ['停车', '停车费', '过路费'] },
-    { name: '火车机票', keywords: ['火车', '高铁', '动车', '机票', '飞机'] },
-    { name: '骑行', keywords: ['共享单车', '骑行', '单车'] }
+    { name: '打车', keywords: ['打车', '滴滴', '出租车', '快车', '网约车', '叫车', '的士', '打车费'] },
+    { name: '公交地铁', keywords: ['地铁', '公交', '公交车', '公交卡', '地铁票', '出行'] },
+    { name: '加油', keywords: ['加油', '油费', '加汽油'] },
+    { name: '停车', keywords: ['停车', '停车费', '过路费', 'ETC'] },
+    { name: '火车机票', keywords: ['火车', '高铁', '动车', '机票', '飞机', '航班', '12306'] },
+    { name: '骑行', keywords: ['共享单车', '骑行', '单车', '摩拜', '哈啰'] }
   ]},
   { name: '住房', icon: '🏠', subs: [
-    { name: '房租', keywords: ['房租', '租金', '房贷'] },
+    { name: '房租', keywords: ['房租', '租金', '房贷', '按揭'] },
     { name: '水电燃气', keywords: ['水电', '水费', '电费', '燃气', '煤气'] },
-    { name: '物业网费', keywords: ['物业', '网费', '宽带'] },
-    { name: '家居维修', keywords: ['维修', '装修', '家具', '暖气'] }
+    { name: '物业网费', keywords: ['物业', '网费', '宽带', 'WiFi'] },
+    { name: '家居维修', keywords: ['维修', '装修', '家具', '暖气', '家居', '家电维修', '换锁'] }
   ]},
   { name: '日用购物', icon: '🛒', subs: [
-    { name: '衣服鞋帽', keywords: ['衣服', '裤子', '鞋子', '裙子', '外套'] },
-    { name: '日用品', keywords: ['日用品', '纸巾', '洗发水', '牙膏', '洗衣液'] },
-    { name: '数码家电', keywords: ['手机', '电脑', '数码', '电器', '耳机', '充电器'] },
-    { name: '化妆品', keywords: ['化妆品', '护肤品', '口红', '面膜'] },
-    { name: '超市网购', keywords: ['超市', '网购', '淘宝', '京东', '拼多多', '购物', '快递'] }
+    { name: '衣服鞋帽', keywords: ['衣服', '裤子', '鞋子', '裙子', '外套', 'T恤', '衬衫', '童装', '衣帽', '运动鞋', '袜子', '内衣', '羽绒服', '牛仔裤', '帽子', '围巾'] },
+    { name: '日用品', keywords: ['日用品', '纸巾', '洗发水', '牙膏', '洗衣液', '洗洁精', '卫生纸', '牙刷', '毛巾'] },
+    { name: '数码家电', keywords: ['手机', '电脑', '数码', '电器', '耳机', '充电器', '键盘', '鼠标', '家电', 'iPad', 'iPhone', '华为', '小米', '冰箱', '洗衣机', '空调', '电视'] },
+    { name: '化妆品', keywords: ['化妆品', '护肤品', '口红', '面膜', '香水', '洗面奶', '精华', '面霜'] },
+    { name: '超市网购', keywords: ['超市', '网购', '淘宝', '京东', '拼多多', '快递', '运费', '美团', '外卖自取'] }
   ]},
   { name: '社交娱乐', icon: '🎮', subs: [
-    { name: '请客送礼', keywords: ['请客', '送礼', '红包', '生日'] },
-    { name: '电影演出', keywords: ['电影', '演出', '门票', '演唱会'] },
-    { name: '游戏充值', keywords: ['游戏', '充值', '点卡'] },
-    { name: '旅游出行', keywords: ['旅游', '旅行', '酒店', '景点', '游玩'] },
-    { name: '聚会KTV', keywords: ['聚会', 'KTV', '唱k', '唱歌', '酒吧', '娱乐', '按摩'] }
+    { name: '请客送礼', keywords: ['请客', '送礼', '红包', '生日礼物', '份子', '随礼', '结婚礼'] },
+    { name: '电影演出', keywords: ['电影', '演出', '门票', '演唱会', '话剧', '音乐节', '影院'] },
+    { name: '游戏充值', keywords: ['游戏', '充值', '点卡', '手游', 'Steam', 'PS5', 'Switch', '王者荣耀', '原神', '皮肤', '游戏币'] },
+    { name: '旅游出行', keywords: ['旅游', '旅行', '酒店', '景点', '游玩', '景区', '门票', '民宿', '度假'] },
+    { name: '聚会KTV', keywords: ['聚会', 'KTV', '唱k', '唱歌', '酒吧', '桌游', '剧本杀', '密室'] }
   ]},
   { name: '医疗', icon: '💊', subs: [
-    { name: '药品', keywords: ['买药', '药品', '感冒药', '退烧药', '药店', '药'] },
-    { name: '看病', keywords: ['看病', '医院', '挂号', '门诊', '诊所'] },
-    { name: '体检', keywords: ['体检', '检查'] },
-    { name: '牙科', keywords: ['牙科', '看牙', '洗牙', '补牙'] }
+    { name: '药品', keywords: ['买药', '药品', '感冒药', '退烧药', '药店', '药', '药房', '止痛药', '消炎药', '创可贴', '维生素'] },
+    { name: '看病', keywords: ['看病', '医院', '挂号', '门诊', '诊所', '急诊', '住院', '手术'] },
+    { name: '体检', keywords: ['体检', '检查', '化验', 'CT', '核磁'] },
+    { name: '牙科', keywords: ['牙科', '看牙', '洗牙', '补牙', '拔牙', '种牙'] }
   ]},
   { name: '教育', icon: '📚', subs: [
-    { name: '书籍', keywords: ['买书', '书籍', '书本'] },
-    { name: '课程培训', keywords: ['课程', '培训', '学费', '辅导'] }
+    { name: '书籍', keywords: ['买书', '书籍', '书本', '电子书', 'kindle', '小说', '教材'] },
+    { name: '课程培训', keywords: ['课程', '培训', '学费', '辅导', '网课', '补习', '家教', '考研', '考试费'] }
   ]},
   { name: '母婴宠物', icon: '🧸', subs: [
-    { name: '母婴用品', keywords: ['奶粉', '尿布', '纸尿裤', '婴儿'] },
-    { name: '宠物', keywords: ['宠物', '猫粮', '狗粮', '猫砂'] }
+    // 新增"母婴玩具"小类，把玩具/儿童玩具相关都纳进来
+    { name: '母婴玩具', keywords: ['奶粉', '尿布', '纸尿裤', '婴儿', '玩具', '儿童玩具', '玩具车', '积木', '芭比', '童装', '童书', '婴儿车', '奶瓶', '学步车', '绘本', '母婴', '乐高', '毛绒玩具', '公仔', '拼图', '洋娃娃'] },
+    { name: '宠物', keywords: ['宠物', '猫粮', '狗粮', '猫砂', '宠物用品', '宠物医院', '仓鼠', '宠物店', '猫罐头', '狗零食', '猫窝'] }
   ]},
   { name: '其他支出', icon: '📌', subs: [
     { name: '其他', keywords: ['其他'] }
@@ -431,16 +433,22 @@ function extractAmount(text) {
     }
   }
   // 2. 匹配中文数字，跳过"数字+量词"（那是数量不是金额）
-  const MEASURE_WORDS = ['斤', '两斤', '个', '杯', '瓶', '件', '双', '只', '支', '张', '袋', '盒', '箱', '趟', '次', '克', '千', '米'];
+  const MEASURE_WORDS = ['斤', '个', '杯', '瓶', '件', '双', '只', '支', '张', '袋', '盒', '箱', '趟', '次', '克', '千', '米'];
   const cnRegex = /[零一二两三四五六七八九十百千万]+/g;
   let m;
   while ((m = cnRegex.exec(text)) !== null) {
-    const afterChar = text[m.index + m[0].length];
-    // 若数字后紧跟量词（斤/个/杯…），说明是数量描述，跳过这段继续找
-    if (afterChar && MEASURE_WORDS.includes(afterChar)) continue;
-    const amount = parseChineseNumber(m[0]);
+    const start = m.index;
+    const matched = m[0];
+    const afterChar = text[start + matched.length];
+    // 关键修复：跳过量词时，把 lastIndex 跳到量词字符之后，让下次匹配从那里开始
+    // 否则 "两斤肉五十" 跳过"两"后 lastIndex 落在"斤"上，整个后续匹配失败
+    if (afterChar && MEASURE_WORDS.includes(afterChar)) {
+      cnRegex.lastIndex = start + matched.length + 1;  // 跳过量词字符
+      continue;
+    }
+    const amount = parseChineseNumber(matched);
     if (amount !== null && amount > 0 && amount < 100000000) {
-      return { amount, remainder: text.replace(m[0], '').replace(/[元块]/g, '').trim() };
+      return { amount, remainder: text.replace(matched, '').replace(/[元块]/g, '').trim() };
     }
   }
   return null;
@@ -496,7 +504,8 @@ function parseDate(text) {
   if (/大前天/.test(text)) return { date: addDays(now, -3), remainder: text.replace(/大前天/g, '').trim() };
   if (/前天/.test(text)) return { date: addDays(now, -2), remainder: text.replace(/前天/g, '').trim() };
   if (/昨天/.test(text)) return { date: addDays(now, -1), remainder: text.replace(/昨天/g, '').trim() };
-  if (/今天|今早|中午|晚上|今晚/.test(text)) return { date: today, remainder: text.replace(/今天|今早|中午|晚上|今晚/g, '').trim() };
+  // 注：移除"中午"——它更多用作午饭描述（"中午吃饭"），避免与分类识别冲突
+  if (/今天|今早|晚上|今晚/.test(text)) return { date: today, remainder: text.replace(/今天|今早|晚上|今晚/g, '').trim() };
   if (/明天/.test(text)) return { date: addDays(now, 1), remainder: text.replace(/明天/g, '').trim() };
 
   const dayMap = { '一': 1, '二': 2, '三': 3, '四': 4, '五': 5, '六': 6, '日': 0, '天': 0 };
@@ -602,14 +611,58 @@ async function rememberCategory(note, category, parentCategory, categoryIcon, ty
   } catch (e) { console.warn('[记忆] 保存失败:', e); }
 }
 
-/** 按关键词长度降序匹配分类（长关键词优先，记忆更精准） */
+/**
+ * 多候选打分匹配分类（提升识别准确率）
+ * 策略：
+ *   1. 提取所有候选关键词及其命中位置
+ *   2. 按"长度×3 + 小类名加权20 + 动作动词后加权15 - 句首句末减分"计算分数
+ *   3. 取分数最高的候选返回
+ *   4. 当有"小类名本身"作为关键词命中时（例"玩具"作为母婴玩具），分数最高
+ *
+ * 解决了："买儿童玩具 50" 误判为"买菜/聚餐"——因为"买菜"是"菜"在小类名"买菜"中，
+ * 现在的算法会同时考虑"玩具"（母婴玩具）和"买菜"（餐饮），按位置+小类名加权，
+ * "玩具"在前且为完整小类名，会胜出。
+ */
 function matchCategory(text, type) {
   const map = type === 'income' ? incomeKeywordMap : expenseKeywordMap;
-  const sortedKeys = Object.keys(map).sort((a, b) => b.length - a.length);
-  for (const key of sortedKeys) {
-    if (text.includes(key)) return map[key];
+  const candidates = [];
+
+  // 动作动词集合（前面有这些词说明后面紧跟的是真正分类名词）
+  const ACTION_VERBS = /^(买|买了|买个|买了个|花了|用了|消费|花了下|花销|支出|买了下)/;
+
+  for (const [keyword, info] of Object.entries(map)) {
+    // 找出所有命中位置，取最相关的一个
+    let idx = text.indexOf(keyword);
+    if (idx === -1) continue;
+
+    let score = 0;
+
+    // 1. 关键词长度权重（长关键词更精确），基础分
+    score += keyword.length * 3;
+
+    // 2. 小类名本身作为关键词时（强信号）：用户说"玩具"就是母婴玩具，说"游戏"就是游戏
+    if (keyword === info.name) score += 25;
+
+    // 3. 位置权重：紧跟"买了/花了"等动作动词后得分高
+    if (idx > 0) {
+      const before = text.slice(Math.max(0, idx - 6), idx);
+      if (ACTION_VERBS.test(before)) score += 12;
+    }
+
+    // 4. 句子开头位置（容易被否定/疑问覆盖）：微减
+    if (idx === 0) score -= 5;
+
+    // 5. 单字关键词的折扣（避免"吃"等过于宽泛的字误命中，但保留"肉/药/游戏"等有意义单字）
+    if (keyword.length === 1) score -= 3;
+
+    candidates.push({ keyword, info, idx, score });
   }
-  return null;
+
+  if (!candidates.length) return null;
+
+  // 按分数降序，取最高
+  candidates.sort((a, b) => b.score - a.score);
+  return candidates[0].info;
 }
 
 /**
