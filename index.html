@@ -1,0 +1,472 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <!-- 移动端视口适配，禁止用户缩放 -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <!-- PWA 主题色 -->
+  <meta name="theme-color" content="#0f0f1a">
+  <!-- iOS Safari 全屏支持 -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="语音记账">
+  <!-- PWA Manifest -->
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" href="icon-192.png" type="image/png" sizes="192x192">
+  <link rel="apple-touch-icon" href="icon-192.png">
+  <link rel="apple-touch-icon" sizes="512x512" href="icon-512.png">
+  <!-- 样式表 -->
+  <link rel="stylesheet" href="styles.css">
+  <title>极简语音记账</title>
+</head>
+<body>
+  <!-- ==================== 应用容器 ==================== -->
+  <div id="app">
+
+    <!-- ==================== 页面1：记账首页 ==================== -->
+    <section id="page-home" class="page active">
+      <!-- 顶部状态栏 -->
+      <header class="page-header">
+        <h1 class="app-title editable" id="app-title" title="点击自定义名称">极简语音记账</h1>
+        <input type="text" id="app-title-input" class="app-title-input" style="display:none;" maxlength="12" placeholder="输入自定义名称">
+        <p class="app-subtitle" id="home-date">今天</p>
+      </header>
+
+      <!-- 今日摘要卡片 -->
+      <div class="summary-card glass-card">
+        <div class="summary-row">
+          <div class="summary-item">
+            <span class="summary-label">今日支出</span>
+            <span class="summary-value expense" id="home-expense">¥0.00</span>
+          </div>
+          <div class="summary-divider"></div>
+          <div class="summary-item">
+            <span class="summary-label">今日收入</span>
+            <span class="summary-value income" id="home-income">¥0.00</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- 离线提示 -->
+      <div class="offline-banner" id="offline-banner" style="display:none;">
+        <span class="offline-icon">📡</span>
+        <span>离线中，暂不支持语音</span>
+      </div>
+
+      <!-- 手动输入区域 -->
+      <div class="manual-input-section">
+        <div class="input-group glass-card">
+          <input
+            type="text"
+            id="manual-input"
+            class="manual-input"
+            placeholder="或手动输入，如：今天午饭花了30块"
+            autocomplete="off"
+          >
+          <button class="btn-send" id="btn-send" aria-label="发送">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20">
+              <line x1="22" y1="2" x2="11" y2="13"/>
+              <polygon points="22,2 15,22 11,13 2,9"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      <!-- 快速记账按钮 -->
+      <div class="quick-actions">
+        <button class="quick-btn" data-text="午饭30">🍜 午饭 30</button>
+        <button class="quick-btn" data-text="奶茶15">🧋 奶茶 15</button>
+        <button class="quick-btn" data-text="打车20">🚗 打车 20</button>
+        <button class="quick-btn" data-text="日用品50">🛒 日用品 50</button>
+      </div>
+    </section>
+
+    <!-- ==================== 语音悬浮区（移出 .page，避免被 .page 的 transform 影响 fixed 定位） ==================== -->
+    <div class="voice-floating" id="voice-floating">
+      <!-- 实时识别文字预览（按钮上方，半透明大号字体） -->
+      <div class="voice-live-text" id="voice-text"></div>
+
+      <div class="voice-ring" id="voice-ring">
+        <!-- 深紫光晕（录音时呼吸动画） -->
+        <div class="voice-halo" id="voice-halo"></div>
+        <!-- 语音按钮：按住说话，松开发送，滑出取消 -->
+        <button class="voice-btn" id="voice-btn" aria-label="语音记账">
+          <svg class="mic-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="9" y="1" width="6" height="11" rx="3"/>
+            <path d="M5 11a7 7 0 0 0 14 0"/>
+            <line x1="12" y1="15" x2="12" y2="20"/>
+            <line x1="8" y1="20" x2="16" y2="20"/>
+          </svg>
+        </button>
+        <!-- 录音波纹动画 -->
+        <div class="voice-waves" id="voice-waves">
+          <span class="wave"></span>
+          <span class="wave"></span>
+          <span class="wave"></span>
+        </div>
+      </div>
+
+      <p class="voice-hint" id="voice-hint">按住说话，松开发送，滑出取消</p>
+    </div>
+
+    <!-- ==================== 页面2：账单列表 ==================== -->
+    <section id="page-list" class="page">
+      <header class="page-header">
+        <h1 class="app-title">账单列表</h1>
+      </header>
+
+      <!-- 时间段筛选器（默认"月"，最近记录都可见） -->
+      <div class="filter-bar glass-card">
+        <button class="filter-btn" data-filter="day">日</button>
+        <button class="filter-btn" data-filter="week">周</button>
+        <button class="filter-btn active" data-filter="month">月</button>
+        <button class="filter-btn" data-filter="custom" id="btn-custom-range">自定义</button>
+      </div>
+
+      <!-- 自定义日期范围选择（默认隐藏） -->
+      <div class="custom-range glass-card" id="custom-range" style="display:none;">
+        <input type="date" id="date-start" class="date-input">
+        <span class="range-sep">至</span>
+        <input type="date" id="date-end" class="date-input">
+        <button class="btn-apply" id="btn-apply-range">确定</button>
+      </div>
+
+      <!-- 时段统计摘要 -->
+      <div class="period-summary glass-card" id="period-summary">
+        <div class="period-item">
+          <span>支出</span><strong class="expense" id="period-expense">¥0.00</strong>
+        </div>
+        <div class="period-item">
+          <span>收入</span><strong class="income" id="period-income">¥0.00</strong>
+        </div>
+        <div class="period-item">
+          <span>结余</span><strong id="period-balance">¥0.00</strong>
+        </div>
+      </div>
+
+      <!-- 多选模式工具栏（默认隐藏） -->
+      <div class="multi-select-bar glass-card" id="multi-select-bar" style="display:none;">
+        <span class="multi-count" id="multi-select-count">已选 0 项</span>
+        <div class="multi-actions">
+          <button class="btn-cancel-multi" id="btn-cancel-multi">取消</button>
+          <button class="btn-batch-delete" id="btn-batch-delete">批量删除</button>
+        </div>
+      </div>
+
+      <!-- 下拉刷新指示器 -->
+      <div class="pull-indicator" id="pull-indicator">
+        <span class="pull-icon">↓</span>
+        <span>下拉刷新</span>
+      </div>
+
+      <!-- 账单列表容器 -->
+      <div class="bill-list" id="bill-list">
+        <!-- 动态渲染 -->
+      </div>
+
+      <!-- 空状态 -->
+      <div class="empty-state" id="bill-empty" style="display:none;">
+        <div class="empty-icon">📋</div>
+        <p>暂无账单记录</p>
+        <p class="empty-hint">去首页开始记账吧</p>
+      </div>
+    </section>
+
+    <!-- ==================== 页面3：数据统计 ==================== -->
+    <section id="page-stats" class="page">
+      <header class="page-header">
+        <h1 class="app-title">数据统计</h1>
+      </header>
+
+      <!-- 统计时间段选择 -->
+      <div class="filter-bar glass-card">
+        <button class="filter-btn active" data-stats-filter="week">本周</button>
+        <button class="filter-btn" data-stats-filter="month">本月</button>
+        <button class="filter-btn" data-stats-filter="year">本年</button>
+      </div>
+
+      <!-- 摘要卡片（带动画数字） -->
+      <div class="stats-summary">
+        <div class="stats-card glass-card income-card">
+          <span class="stats-label">总收入</span>
+          <span class="stats-number" id="stats-income">¥0.00</span>
+        </div>
+        <div class="stats-card glass-card expense-card">
+          <span class="stats-label">总支出</span>
+          <span class="stats-number" id="stats-expense">¥0.00</span>
+        </div>
+        <div class="stats-card glass-card balance-card">
+          <span class="stats-label">结余</span>
+          <span class="stats-number" id="stats-balance">¥0.00</span>
+        </div>
+      </div>
+
+      <!-- 饼图：支出占比（大类 / 细分 切换） -->
+      <div class="chart-container glass-card">
+        <div class="chart-head">
+          <h3 class="chart-title">支出占比</h3>
+          <div class="groupby-tabs">
+            <button class="groupby-tab active" data-groupby="parent">大类</button>
+            <button class="groupby-tab" data-groupby="sub">细分</button>
+          </div>
+        </div>
+        <div class="chart-wrapper">
+          <canvas id="pie-chart"></canvas>
+        </div>
+      </div>
+
+      <!-- 折线图：每日收支趋势 -->
+      <div class="chart-container glass-card">
+        <h3 class="chart-title">每日收支趋势</h3>
+        <div class="chart-wrapper">
+          <canvas id="line-chart"></canvas>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== 页面4：设置 ==================== -->
+    <section id="page-settings" class="page">
+      <header class="page-header">
+        <h1 class="app-title">设置</h1>
+      </header>
+
+      <!-- 自定义分类管理（两级：大类 → 小类） -->
+      <div class="settings-section">
+        <h3 class="section-title">自定义分类（大类下可添加小类）</h3>
+
+        <!-- 支出分类 -->
+        <div class="settings-group glass-card">
+          <h4 class="group-label">支出分类</h4>
+          <div class="category-list" id="expense-categories">
+            <!-- 动态渲染：按大类分组 -->
+          </div>
+        </div>
+
+        <!-- 收入分类 -->
+        <div class="settings-group glass-card">
+          <h4 class="group-label">收入分类</h4>
+          <div class="category-list" id="income-categories">
+            <!-- 动态渲染：按大类分组 -->
+          </div>
+        </div>
+      </div>
+
+      <!-- 最近删除回收站 -->
+      <div class="settings-section">
+        <h3 class="section-title">最近删除（保留 7 天）</h3>
+        <div class="settings-group glass-card">
+          <div class="trash-list" id="trash-list">
+            <!-- 动态渲染 -->
+          </div>
+        </div>
+      </div>
+
+      <!-- 数据管理 -->
+      <div class="settings-section">
+        <h3 class="section-title">数据管理</h3>
+        <div class="settings-group glass-card">
+          <button class="settings-btn" id="btn-export">
+            <span>📤 导出数据</span>
+            <span class="btn-arrow">›</span>
+          </button>
+          <button class="settings-btn" id="btn-import">
+            <span>📥 导入数据</span>
+            <span class="btn-arrow">›</span>
+          </button>
+          <input type="file" id="import-file" accept=".json" style="display:none;">
+          <button class="settings-btn danger" id="btn-clear-data">
+            <span>🗑️ 清除所有数据</span>
+            <span class="btn-arrow">›</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- 关于 -->
+      <div class="settings-section">
+        <h3 class="section-title">关于</h3>
+        <div class="settings-group glass-card">
+          <div class="settings-info">
+            <span>版本</span>
+            <span>v1.1.0</span>
+          </div>
+          <div class="settings-info">
+            <span>存储引擎</span>
+            <span>IndexedDB 本地</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== 底部导航栏 ==================== -->
+    <nav id="bottom-nav">
+      <button class="nav-btn active" data-page="home" aria-label="记账">
+        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <rect x="9" y="1" width="6" height="11" rx="3"/>
+          <path d="M5 11a7 7 0 0 0 14 0"/>
+          <line x1="12" y1="15" x2="12" y2="20"/>
+          <line x1="8" y1="20" x2="16" y2="20"/>
+        </svg>
+        <span class="nav-label">记账</span>
+      </button>
+      <button class="nav-btn" data-page="list" aria-label="账单">
+        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <rect x="3" y="3" width="18" height="18" rx="2"/>
+          <line x1="9" y1="9" x2="15" y2="9"/>
+          <line x1="9" y1="13" x2="15" y2="13"/>
+          <line x1="9" y1="17" x2="13" y2="17"/>
+        </svg>
+        <span class="nav-label">账单</span>
+      </button>
+      <button class="nav-btn" data-page="stats" aria-label="统计">
+        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <rect x="3" y="17" width="4" height="4" rx="1"/>
+          <rect x="9" y="9" width="4" height="12" rx="1"/>
+          <rect x="15" y="3" width="4" height="18" rx="1"/>
+        </svg>
+        <span class="nav-label">统计</span>
+      </button>
+      <button class="nav-btn" data-page="settings" aria-label="设置">
+        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="3"/>
+          <path d="M12 1v2m0 18v2M4.22 4.22l1.42 1.42m12.72 12.72 1.42 1.42M1 12h2m18 0h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
+        </svg>
+        <span class="nav-label">设置</span>
+      </button>
+    </nav>
+
+    <!-- ==================== 语音胶囊（识别成功的轻量确认卡片） ==================== -->
+    <div class="capsule-overlay" id="capsule-overlay" style="display:none;">
+      <div class="voice-capsule glass-card" id="voice-capsule">
+        <!-- 左上角关闭作废 -->
+        <button class="capsule-close" id="capsule-close" aria-label="关闭">×</button>
+
+        <!-- 收支类型小标签 -->
+        <div class="capsule-type-tag" id="capsule-type-tag">支出</div>
+
+        <!-- 金额（大字突出，点击就地编辑） -->
+        <div class="capsule-amount-wrap" id="capsule-amount-wrap">
+          <span class="capsule-currency">¥</span>
+          <span class="capsule-amount" id="capsule-amount">0.00</span>
+          <input type="number" class="capsule-amount-input" id="capsule-amount-input"
+                 style="display:none;" step="0.01" min="0" inputmode="decimal" placeholder="0.00">
+        </div>
+
+        <!-- 分类 + 日期 字段行 -->
+        <div class="capsule-fields">
+          <!-- 分类：点击展开两级选择面板，左右滑动在同大类内切换小类 -->
+          <div class="capsule-field capsule-cat-field" id="capsule-category-field">
+            <span id="capsule-category-icon">🍜</span>
+            <span id="capsule-category">餐饮</span>
+            <span class="capsule-switch-hint">‹ ›</span>
+          </div>
+          <!-- 日期：点击弹出日期选择器 -->
+          <div class="capsule-field" id="capsule-date-field">
+            <span class="capsule-cal-icon">📅</span>
+            <span id="capsule-date">今天</span>
+          </div>
+        </div>
+
+        <!-- 两级分类选择面板（点击分类字段展开） -->
+        <div class="capsule-cat-panel" id="capsule-cat-panel" style="display:none;"></div>
+
+        <!-- 备注（点击就地编辑） -->
+        <div class="capsule-note-wrap" id="capsule-note-wrap">
+          <span class="capsule-note-icon">✏️</span>
+          <span class="capsule-note" id="capsule-note">点击添加备注</span>
+          <input type="text" class="capsule-note-input" id="capsule-note-input"
+                 style="display:none;" placeholder="记录点什么...">
+        </div>
+
+        <!-- 隐藏的日期选择器 -->
+        <input type="date" id="capsule-date-input" style="position:absolute;opacity:0;pointer-events:none;width:1px;height:1px;">
+
+        <!-- 确认按钮 -->
+        <button class="capsule-confirm" id="capsule-confirm">确认</button>
+      </div>
+    </div>
+
+    <!-- ==================== 完善账单模态框 ==================== -->
+    <div class="modal-overlay" id="modal-overlay" style="display:none;">
+      <div class="modal-card glass-card" id="modal-card">
+        <!-- 模态框头部 -->
+        <div class="modal-header">
+          <h2 id="modal-title">完善账单</h2>
+          <button class="modal-close" id="modal-close" aria-label="关闭">✕</button>
+        </div>
+
+        <!-- 收支类型切换 -->
+        <div class="modal-type-switch">
+          <button class="type-btn active" data-type="expense" id="type-expense-btn">支出</button>
+          <button class="type-btn" data-type="income" id="type-income-btn">收入</button>
+        </div>
+
+        <!-- 金额字段 -->
+        <div class="modal-field">
+          <label class="field-label">金额</label>
+          <div class="amount-input-wrapper">
+            <span class="currency-symbol">¥</span>
+            <input type="number" id="edit-amount" class="field-input amount-input"
+                   placeholder="0.00" step="0.01" min="0" inputmode="decimal">
+          </div>
+        </div>
+
+        <!-- 日期字段 -->
+        <div class="modal-field">
+          <label class="field-label">日期</label>
+          <input type="date" id="edit-date" class="field-input">
+        </div>
+
+        <!-- 分类字段 -->
+        <div class="modal-field">
+          <label class="field-label">分类</label>
+          <div class="category-picker" id="category-picker">
+            <!-- 动态渲染分类选项 -->
+          </div>
+        </div>
+
+        <!-- 备注字段 -->
+        <div class="modal-field">
+          <label class="field-label">备注</label>
+          <input type="text" id="edit-note" class="field-input" placeholder="记录点什么...">
+        </div>
+
+        <!-- 操作按钮：保存 / 取消 -->
+        <div class="modal-actions">
+          <button class="btn-cancel" id="btn-cancel">取消</button>
+          <button class="btn-confirm" id="btn-confirm">确认保存</button>
+        </div>
+
+        <!-- 编辑模式的删除按钮（红色醒目，仅编辑已有账单时显示） -->
+        <button class="btn-delete-bill" id="btn-delete-bill" style="display:none;">🗑 删除此账单</button>
+      </div>
+    </div>
+
+    <!-- ==================== 快速撤销提示条 ==================== -->
+    <div class="undo-bar" id="undo-bar" style="display:none;">
+      <span id="undo-text">✓ 已记账 · 点击撤销</span>
+    </div>
+
+    <!-- ==================== Toast 轻提示 ==================== -->
+    <div class="toast" id="toast" style="display:none;">
+      <span class="toast-icon" id="toast-icon"></span>
+      <span class="toast-msg" id="toast-msg"></span>
+    </div>
+
+    <!-- ==================== 确认对话框 ==================== -->
+    <div class="modal-overlay" id="confirm-overlay" style="display:none;">
+      <div class="confirm-card glass-card">
+        <p class="confirm-msg" id="confirm-msg"></p>
+        <div class="confirm-actions">
+          <button class="btn-cancel" id="confirm-cancel">取消</button>
+          <button class="btn-confirm danger-btn" id="confirm-ok">确定</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Chart.js CDN（统计图表） -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <!-- 主应用逻辑 -->
+  <script src="app.js"></script>
+</body>
+</html>
