@@ -799,7 +799,7 @@ function initSpeechRecognition(sessionId) {
         hintMsg = '麦克风权限被拒，请手动输入'; showToast('请允许麦克风权限', 'warning', 3000); break;
       case 'no-speech': hintMsg = '未检测到语音，请重试'; break;
       case 'audio-capture': hintMsg = '未检测到麦克风设备'; showToast('未找到麦克风', 'error'); break;
-      case 'network': hintMsg = '语音识别需联网'; showToast('语音识别需联网', 'warning', 3000); break;
+      case 'network': hintMsg = '语音服务暂不可用，请手动输入'; showToast('语音识别依赖 Google 服务，当前网络下不可用，请使用手动输入', 'warning', 4000); break;
       case 'aborted': hintMsg = '按住说话，松开发送，滑出取消'; break;
       default: hintMsg = '识别失败，请手动输入';
     }
