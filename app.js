@@ -1868,7 +1868,7 @@ function getStatsDateRange() {
   const now = new Date();
   switch (statsFilter) {
     case 'week': { const d = new Date(now); d.setDate(d.getDate() - 6); return { start: fmtDate(d), end: today }; }
-    case 'month': { const d = new Date(now); d.setMonth(d.getMonth() - 1); return { start: fmtDate(d), end: today }; }
+    case 'month': { const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1); return { start: fmtDate(startOfMonth), end: today }; }
     case 'year': return { start: `${now.getFullYear()}-01-01`, end: today };
     default: return { start: today, end: today };
   }
