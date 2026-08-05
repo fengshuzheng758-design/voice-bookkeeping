@@ -758,10 +758,9 @@ const BAIDU_ASR_SECRET_KEY = 'dsmIsUrq43GHKgxjkaxtJzH1tqIhHUvq';
 const BAIDU_ASR_DEV_PID = 1537; // 1537=普通话(输入法模型) 1536=普通话(搜索模型)
 
 // ★★★ 网页版专用：百度语音 API 不支持浏览器跨域，需要走代理中转 ★★★
-// APK 版（安卓/鸿蒙安装包）已内置放行，无需代理，此配置留空即可。
-// 网页版若要使用语音，请部署一个免费代理（详见项目内 baidu-asr-proxy/ 说明），
-// 把代理地址填到下面，例如 'https://your-proxy.workers.dev'
-const BAIDU_ASR_PROXY = '';
+// 已部署百度云 CFC 代理（路由 /proxy，请求体带 action 字段区分 token/recognize）
+// APK 版（安卓/鸿蒙安装包）已内置放行，无需代理
+const BAIDU_ASR_PROXY = 'https://c90gpx6p8yr0a.cfc-execute.bj.baidubce.com/proxy';
 
 const PRESS_THRESHOLD = 150;     // 防误触阈值(ms)
 const RECORD_MAX_DURATION = 10000; // 录音超时(ms)（百度标准版最长 60 秒）
@@ -877,10 +876,10 @@ async function getBaiduToken() {
   try {
     if (BAIDU_ASR_PROXY) {
       // 网页版：走代理中转（百度 API 不支持浏览器跨域）
-      resp = await fetch(BAIDU_ASR_PROXY + '/token', {
+      resp = await fetch(BAIDU_ASR_PROXY, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ apiKey: BAIDU_ASR_API_KEY, secretKey: BAIDU_ASR_SECRET_KEY })
+        body: JSON.stringify({ action: 'token', apiKey: BAIDU_ASR_API_KEY, secretKey: BAIDU_ASR_SECRET_KEY })
       });
     } else {
       // APK 版：WebView 已放行跨域，直连百度
@@ -914,10 +913,10 @@ async function baiduRecognize(base64, len) {
   try {
     if (BAIDU_ASR_PROXY) {
       // 网页版：走代理中转
-      resp = await fetch(BAIDU_ASR_PROXY + '/recognize', {
+      resp = await fetch(BAIDU_ASR_PROXY, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
+        body: JSON.stringify(Object.assign({ action: 'recognize' }, payload))
       });
     } else {
       // APK 版：直连百度
