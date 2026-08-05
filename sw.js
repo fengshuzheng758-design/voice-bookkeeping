@@ -8,7 +8,7 @@
  */
 
 // 缓存名称（版本号便于更新，功能升级时递增以刷新缓存）
-const CACHE_NAME = 'voice-bookkeeping-v6';
+const CACHE_NAME = 'voice-bookkeeping-v7';
 
 // 需要预缓存的静态资源列表
 const PRECACHE_URLS = [

@@ -1560,13 +1560,13 @@ function getFilterDateRange() {
   const today = todayStr();
   const now = new Date();
   switch (currentFilter) {
-    case 'day': return { start: today, end: today };
     case 'week': {
       const monday = new Date(now);
       monday.setDate(monday.getDate() - (monday.getDay() === 0 ? 6 : monday.getDay() - 1));
       return { start: fmtDate(monday), end: today };
     }
     case 'month': return { start: `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`, end: today };
+    case 'year': return { start: `${now.getFullYear()}-01-01`, end: today };
     case 'custom': return { start: customDateStart || today, end: customDateEnd || today };
     default: return { start: today, end: today };
   }
@@ -2293,10 +2293,12 @@ function bindEvents() {
   btnSend?.addEventListener('click', handleManualInput);
   manualInput?.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); handleManualInput(); } });
 
-  // ---- 快速记账按钮 ----
+  // ---- 快速记账按钮：填入分类词并聚焦输入框，用户补充金额后发送 ----
   document.querySelectorAll('.quick-btn').forEach(btn => btn.addEventListener('click', () => {
     manualInput.value = btn.dataset.text;
-    handleManualInput();
+    manualInput.focus();
+    // 光标移到末尾，方便直接追加金额
+    try { manualInput.setSelectionRange(manualInput.value.length, manualInput.value.length); } catch (e) {}
   }));
 
   // ---- 账单列表筛选 ----
@@ -2305,14 +2307,28 @@ function bindEvents() {
     btn.classList.add('active');
     currentFilter = btn.dataset.filter;
     const customRange = document.getElementById('custom-range');
-    if (currentFilter === 'custom') customRange.style.display = 'flex';
-    else { customRange.style.display = 'none'; renderBillList(); }
+    const rangeHint = document.getElementById('range-hint');
+    if (currentFilter === 'custom') {
+      // 默认填好"本月1号~今天"（若用户上次确认过自定义范围则保留），点确定即可出数据
+      const now = new Date();
+      const firstDay = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`;
+      const ds = document.getElementById('date-start');
+      const de = document.getElementById('date-end');
+      if (customDateStart && customDateEnd) { ds.value = customDateStart; de.value = customDateEnd; }
+      else { ds.value = firstDay; de.value = todayStr(); }
+      if (rangeHint) rangeHint.textContent = '选择起止日期后点确定';
+      customRange.style.display = 'flex';
+    } else { customRange.style.display = 'none'; renderBillList(); }
   }));
 
   document.getElementById('btn-apply-range')?.addEventListener('click', () => {
     customDateStart = document.getElementById('date-start').value;
     customDateEnd = document.getElementById('date-end').value;
-    if (customDateStart && customDateEnd) renderBillList();
+    if (customDateStart && customDateEnd) {
+      const rangeHint = document.getElementById('range-hint');
+      if (rangeHint) rangeHint.textContent = `当前范围：${customDateStart} ~ ${customDateEnd}`;
+      renderBillList();
+    }
     else showToast('请选择起止日期', 'warning');
   });
   const dateStart = document.getElementById('date-start');

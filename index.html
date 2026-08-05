@@ -72,12 +72,14 @@
         </div>
       </div>
 
-      <!-- 快速记账按钮 -->
+      <!-- 快速记账按钮（点击填入分类，金额手动输入） -->
       <div class="quick-actions">
-        <button class="quick-btn" data-text="午饭30">🍜 午饭 30</button>
-        <button class="quick-btn" data-text="奶茶15">🧋 奶茶 15</button>
-        <button class="quick-btn" data-text="打车20">🚗 打车 20</button>
-        <button class="quick-btn" data-text="日用品50">🛒 日用品 50</button>
+        <button class="quick-btn" data-text="午饭">🍜 午饭</button>
+        <button class="quick-btn" data-text="买菜">🥬 买菜</button>
+        <button class="quick-btn" data-text="奶茶">🧋 奶茶</button>
+        <button class="quick-btn" data-text="打车">🚗 打车</button>
+        <button class="quick-btn" data-text="玩具">🧸 玩具</button>
+        <button class="quick-btn" data-text="日用品">🛒 日用品</button>
       </div>
     </section>
 
@@ -117,17 +119,20 @@
 
       <!-- 时间段筛选器（默认"月"，最近记录都可见） -->
       <div class="filter-bar glass-card">
-        <button class="filter-btn" data-filter="day">日</button>
         <button class="filter-btn" data-filter="week">周</button>
         <button class="filter-btn active" data-filter="month">月</button>
+        <button class="filter-btn" data-filter="year">年</button>
         <button class="filter-btn" data-filter="custom" id="btn-custom-range">自定义</button>
       </div>
 
       <!-- 自定义日期范围选择（默认隐藏） -->
       <div class="custom-range glass-card" id="custom-range" style="display:none;">
-        <input type="date" id="date-start" class="date-input">
-        <span class="range-sep">至</span>
-        <input type="date" id="date-end" class="date-input">
+        <span class="range-hint" id="range-hint">选择起止日期后点确定</span>
+        <div class="range-inputs">
+          <input type="date" id="date-start" class="date-input">
+          <span class="range-sep">至</span>
+          <input type="date" id="date-end" class="date-input">
+        </div>
         <button class="btn-apply" id="btn-apply-range">确定</button>
       </div>
 

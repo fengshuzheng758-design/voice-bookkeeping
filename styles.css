@@ -486,15 +486,28 @@ body {
 /* 自定义日期范围 */
 .custom-range {
   display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 12px;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px;
   margin-bottom: 12px;
   animation: fadeInDown 0.3s ease;
 }
 
+.range-hint {
+  font-size: 0.8rem;
+  color: var(--purple-400, #a78bfa);
+  font-weight: 500;
+}
+
+.range-inputs {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
 .date-input {
   flex: 1;
+  min-width: 0;
   padding: 8px 12px;
   border: 1px solid var(--border-color);
   border-radius: var(--radius-sm);
@@ -517,15 +530,22 @@ body {
 }
 
 .btn-apply {
-  padding: 8px 16px;
+  width: 100%;
+  padding: 11px 16px;
   border: none;
   border-radius: var(--radius-sm);
-  background: var(--purple-600);
+  background: linear-gradient(135deg, var(--purple-600), var(--purple-700));
   color: white;
-  font-size: 0.85rem;
+  font-size: 0.95rem;
+  font-weight: 600;
   cursor: pointer;
   font-family: inherit;
   flex-shrink: 0;
+  transition: opacity var(--transition-fast);
+}
+
+.btn-apply:active {
+  opacity: 0.85;
 }
 
 /* 时段统计 */
@@ -1316,7 +1336,7 @@ body {
 @media (min-width: 430px) {
   .app-title { font-size: 1.75rem; }
   .summary-value { font-size: 1.8rem; }
-  .quick-actions { grid-template-columns: repeat(4, 1fr); }
+  .quick-actions { grid-template-columns: repeat(3, 1fr); }
   .stats-number { font-size: 1.4rem; }
 }
 
