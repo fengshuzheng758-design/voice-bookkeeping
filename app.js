@@ -786,6 +786,10 @@ let baiduRec = null; // { ctx, stream, processor, source, samples, sampleRate }
 function baiduStartRecording() {
   return new Promise(async (resolve, reject) => {
     try {
+      // 安卓 WebView：先通过原生桥确保系统麦克风权限已授权
+      if (window.AndroidBridge && window.AndroidBridge.requestMicPermission) {
+        try { window.AndroidBridge.requestMicPermission(); } catch (e) {}
+      }
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       const ctx = new (window.AudioContext || window.webkitAudioContext)();
       const source = ctx.createMediaStreamSource(stream);
@@ -1078,8 +1082,11 @@ function beginRecording() {
     if (p && p.catch) p.catch((err) => {
       console.error('[语音] 启动失败:', err);
       if (sid !== recordSession) return;
-      if (/denied|NotAllowed|Permission/i.test(String(err))) showToast('请允许麦克风权限', 'warning', 3000);
-      else if (/not found|NotFound/i.test(String(err))) showToast('未找到麦克风设备', 'error');
+      const msg = String((err && err.message) ? err.message : err) + ' ' + String((err && err.name) ? err.name : '');
+      if (/denied|NotAllowed|Permission/i.test(msg)) showToast('请允许麦克风权限（设置→应用→语音记账→权限→麦克风）', 'warning', 4000);
+      else if (/not found|NotFound/i.test(msg)) showToast('未找到麦克风设备', 'error');
+      else if (/NotReadable|in use|busy|占用|track/i.test(msg)) showToast('麦克风被占用，请先关闭其他使用麦克风的应用', 'warning', 4000);
+      else if (/SecurityError|secure/i.test(msg)) showToast('当前环境禁止使用麦克风', 'error');
       else showToast('无法启动录音，请重试', 'error');
       stopRecordingUI();
     });
