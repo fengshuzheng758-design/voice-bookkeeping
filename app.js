@@ -748,14 +748,30 @@ let pressTimer = null;           // 150ms 防误触定时器
 let recordTimeout = null;        // 8秒超时定时器
 let recordSession = 0;           // 录音会话 id（防止旧回调干扰）
 
+// ============================================================
+// 九、语音识别（百度短语音识别，替代 Google Web Speech API）
+// ============================================================
+
+// ★★★ 百度智能云「短语音识别」应用 Key（已配置） ★★★
+const BAIDU_ASR_API_KEY = '7NF8FbrX8zgF6DPFmsgzhADW';
+const BAIDU_ASR_SECRET_KEY = 'dsmIsUrq43GHKgxjkaxtJzH1tqIhHUvq';
+const BAIDU_ASR_DEV_PID = 1537; // 1537=普通话(输入法模型) 1536=普通话(搜索模型)
+
+// ★★★ 网页版专用：百度语音 API 不支持浏览器跨域，需要走代理中转 ★★★
+// APK 版（安卓/鸿蒙安装包）已内置放行，无需代理，此配置留空即可。
+// 网页版若要使用语音，请部署一个免费代理（详见项目内 baidu-asr-proxy/ 说明），
+// 把代理地址填到下面，例如 'https://your-proxy.workers.dev'
+const BAIDU_ASR_PROXY = '';
+
 const PRESS_THRESHOLD = 150;     // 防误触阈值(ms)
-const RECORD_MAX_DURATION = 8000; // 录音超时(ms)
+const RECORD_MAX_DURATION = 10000; // 录音超时(ms)（百度标准版最长 60 秒）
 
 const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
   (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 
+/** 语音能力检测：有麦克风权限能力即可（识别走百度云端，不依赖 Google） */
 function isSpeechSupported() {
-  return !!(window.SpeechRecognition || window.webkitSpeechRecognition);
+  return !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia);
 }
 
 /** 安全震动 */
@@ -763,61 +779,205 @@ function vibrate(pattern) {
   if (navigator.vibrate) { try { navigator.vibrate(pattern); } catch (e) {} }
 }
 
-/** 初始化识别器（绑定会话 id） */
+// ---------- 百度录音与识别核心 ----------
+
+let baiduRec = null; // { ctx, stream, processor, source, samples, sampleRate }
+
+/** 开始录音：采集 44.1kHz 单声道 PCM */
+function baiduStartRecording() {
+  return new Promise(async (resolve, reject) => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const ctx = new (window.AudioContext || window.webkitAudioContext)();
+      const source = ctx.createMediaStreamSource(stream);
+      const processor = ctx.createScriptProcessor(4096, 1, 1);
+      const samples = [];
+      processor.onaudioprocess = (e) => {
+        samples.push(new Float32Array(e.inputBuffer.getChannelData(0)));
+      };
+      source.connect(processor);
+      processor.connect(ctx.destination);
+      baiduRec = { ctx, stream, processor, source, samples, sampleRate: ctx.sampleRate };
+      resolve();
+    } catch (err) {
+      reject(err);
+    }
+  });
+}
+
+/** 停止录音：重采样 16kHz → 16bit PCM → WAV，返回 { base64, len } */
+function baiduStopRecording() {
+  if (!baiduRec) return null;
+  const { ctx, stream, processor, source, samples, sampleRate } = baiduRec;
+  // 立即停止采集
+  try { stream.getTracks().forEach(t => t.stop()); } catch (e) {}
+  try { source.disconnect(); } catch (e) {}
+  try { processor.disconnect(); } catch (e) {}
+
+  // 拼接全部采样
+  let total = 0;
+  for (const s of samples) total += s.length;
+  const all = new Float32Array(total);
+  let off = 0;
+  for (const s of samples) { all.set(s, off); off += s.length; }
+
+  // 重采样到 16kHz 并转 16bit
+  const targetRate = 16000;
+  const outLen = Math.floor(all.length * targetRate / sampleRate);
+  const pcm = new Int16Array(outLen);
+  for (let i = 0; i < outLen; i++) {
+    const srcIdx = Math.floor(i * sampleRate / targetRate);
+    const v = all[Math.min(srcIdx, all.length - 1)] * 0x7FFF;
+    pcm[i] = Math.max(-32768, Math.min(32767, Math.round(v)));
+  }
+
+  // 封装 WAV
+  const wavBytes = encodeWav(pcm, targetRate);
+  baiduRec = null;
+  try { ctx.close(); } catch (e) {}
+  return { base64: bytesToBase64(wavBytes), len: wavBytes.length };
+}
+
+/** 16bit PCM → WAV 字节流 */
+function encodeWav(pcm, rate) {
+  const buf = new ArrayBuffer(44 + pcm.length * 2);
+  const view = new DataView(buf);
+  const writeStr = (o, s) => { for (let i = 0; i < s.length; i++) view.setUint8(o + i, s.charCodeAt(i)); };
+  writeStr(0, 'RIFF'); view.setUint32(4, 36 + pcm.length * 2, true); writeStr(8, 'WAVE');
+  writeStr(12, 'fmt '); view.setUint32(16, 16, true);
+  view.setUint16(20, 1, true); view.setUint16(22, 1, true); view.setUint32(24, rate, true);
+  view.setUint32(28, rate * 2, true); view.setUint16(32, 2, true); view.setUint16(34, 16, true);
+  writeStr(36, 'data'); view.setUint32(40, pcm.length * 2, true);
+  const bytes = new Uint8Array(buf);
+  for (let i = 0; i < pcm.length; i++) {
+    bytes[44 + i * 2] = pcm[i] & 0xff;
+    bytes[44 + i * 2 + 1] = (pcm[i] >> 8) & 0xff;
+  }
+  return bytes;
+}
+
+/** 字节流 → base64 */
+function bytesToBase64(bytes) {
+  let bin = '';
+  const CHUNK = 0x8000;
+  for (let i = 0; i < bytes.length; i += CHUNK) {
+    bin += String.fromCharCode.apply(null, bytes.subarray(i, i + CHUNK));
+  }
+  return btoa(bin);
+}
+
+/** 获取百度 access_token（缓存 28 天，避免频繁换取） */
+async function getBaiduToken() {
+  const cacheKey = 'baidu_asr_token';
+  try {
+    const cached = JSON.parse(localStorage.getItem(cacheKey));
+    if (cached && cached.token && cached.expire > Date.now()) return cached.token;
+  } catch (e) {}
+  let resp;
+  try {
+    if (BAIDU_ASR_PROXY) {
+      // 网页版：走代理中转（百度 API 不支持浏览器跨域）
+      resp = await fetch(BAIDU_ASR_PROXY + '/token', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ apiKey: BAIDU_ASR_API_KEY, secretKey: BAIDU_ASR_SECRET_KEY })
+      });
+    } else {
+      // APK 版：WebView 已放行跨域，直连百度
+      const url = `https://aip.baidubce.com/oauth/2.0/token?grant_type=client_credentials&client_id=${BAIDU_ASR_API_KEY}&client_secret=${BAIDU_ASR_SECRET_KEY}`;
+      resp = await fetch(url);
+    }
+  } catch (e) {
+    throw new Error('network_error');
+  }
+  const data = await resp.json();
+  if (!data.access_token) {
+    if (data.error === 'invalid_client') throw new Error('invalid_key');
+    throw new Error(data.error_description || '获取 token 失败');
+  }
+  localStorage.setItem(cacheKey, JSON.stringify({
+    token: data.access_token,
+    expire: Date.now() + (data.expires_in - 3600) * 1000
+  }));
+  return data.access_token;
+}
+
+/** 调用百度短语音识别 API，返回识别文本 */
+async function baiduRecognize(base64, len) {
+  const token = await getBaiduToken();
+  const payload = {
+    format: 'wav', rate: 16000, channel: 1,
+    cuid: 'voice_bookkeeping_' + Math.random().toString(36).slice(2, 8),
+    token, dev_pid: BAIDU_ASR_DEV_PID, speech: base64, len
+  };
+  let resp;
+  try {
+    if (BAIDU_ASR_PROXY) {
+      // 网页版：走代理中转
+      resp = await fetch(BAIDU_ASR_PROXY + '/recognize', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+    } else {
+      // APK 版：直连百度
+      resp = await fetch('https://vop.baidu.com/server_api', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+    }
+  } catch (e) {
+    throw new Error('network_error');
+  }
+  const data = await resp.json();
+  if (data.err_no === 0 && data.result && data.result.length) return data.result[0];
+  throw new Error(data.err_msg || '识别失败');
+}
+
+/** 初始化百度识别器（兼容原 recognition.start/stop/abort 接口） */
 function initSpeechRecognition(sessionId) {
-  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-  if (!SpeechRecognition) return null;
-
-  const rec = new SpeechRecognition();
-  rec.lang = 'zh-CN';
-  rec.interimResults = true;
-  rec.continuous = false;
-  rec.maxAlternatives = 1;
-
-  rec.onresult = (event) => {
-    if (cancelled || sessionId !== recordSession) return;
-    let transcript = '';
-    for (let i = 0; i < event.results.length; i++) transcript += event.results[i][0].transcript;
-    lastTranscript = transcript;
-    // 实时预览（按钮上方大字）
-    const liveEl = document.getElementById('voice-text');
-    if (liveEl) liveEl.textContent = transcript;
-    const lastResult = event.results[event.results.length - 1];
-    if (lastResult.isFinal && !resultHandled) {
-      resultHandled = true;
-      handleVoiceResult(transcript);
+  if (!isSpeechSupported()) return null;
+  return {
+    start: () => baiduStartRecording(),
+    stop: async () => {
+      try {
+        const audio = baiduStopRecording();
+        if (!audio || cancelled || sessionId !== recordSession) return;
+        const liveEl = document.getElementById('voice-text');
+        if (liveEl) liveEl.textContent = '识别中…';
+        const text = await baiduRecognize(audio.base64, audio.len);
+        if (cancelled || sessionId !== recordSession) return;
+        if (text) {
+          lastTranscript = text;
+          resultHandled = true;
+          handleVoiceResult(text);
+        } else {
+          showToast('未识别到语音，请重试', 'warning');
+        }
+      } catch (err) {
+        console.error('[语音] 识别失败:', err);
+        if (cancelled || sessionId !== recordSession) return;
+        const msg = String(err && err.message ? err.message : err);
+        if (/麦克风|Permission|denied|NotAllowed/i.test(msg)) {
+          showToast('请允许麦克风权限', 'warning', 3000);
+        } else if (msg === 'invalid_key') {
+          showToast('语音 Key 未配置或无效，请手动输入', 'warning', 4000);
+        } else if (msg === 'network_error') {
+          showToast('语音服务连接失败，请检查网络', 'warning', 4000);
+        } else {
+          showToast('识别失败，请重试', 'warning');
+        }
+        const voiceHint = document.getElementById('voice-hint');
+        if (voiceHint) voiceHint.textContent = '识别失败，请手动输入';
+      } finally {
+        stopRecordingUI();
+      }
+    },
+    abort: () => {
+      try { if (baiduRec) baiduStopRecording(); } catch (e) {}
     }
   };
-
-  rec.onerror = (event) => {
-    if (cancelled || sessionId !== recordSession) return;
-    console.error('[语音] 错误:', event.error);
-    const voiceHint = document.getElementById('voice-hint');
-    let hintMsg = '识别失败，请重试';
-    switch (event.error) {
-      case 'not-allowed': case 'service-not-allowed':
-        hintMsg = '麦克风权限被拒，请手动输入'; showToast('请允许麦克风权限', 'warning', 3000); break;
-      case 'no-speech': hintMsg = '未检测到语音，请重试'; break;
-      case 'audio-capture': hintMsg = '未检测到麦克风设备'; showToast('未找到麦克风', 'error'); break;
-      case 'network': hintMsg = '语音服务暂不可用，请手动输入'; showToast('语音识别依赖 Google 服务，当前网络下不可用，请使用手动输入', 'warning', 4000); break;
-      case 'aborted': hintMsg = '按住说话，松开发送，滑出取消'; break;
-      default: hintMsg = '识别失败，请手动输入';
-    }
-    if (voiceHint) voiceHint.textContent = hintMsg;
-    if (lastTranscript && !resultHandled) { resultHandled = true; handleVoiceResult(lastTranscript); }
-    stopRecordingUI();
-  };
-
-  rec.onend = () => {
-    if (sessionId !== recordSession) return;
-    if (cancelled) { cancelled = false; return; }
-    // 兜底：onend 时若最终结果未处理，补处理
-    if (lastTranscript && !resultHandled) { resultHandled = true; handleVoiceResult(lastTranscript); }
-    stopRecordingUI();
-  };
-
-  rec.onstart = () => { lastTranscript = ''; resultHandled = false; };
-  return rec;
 }
 
 /** 判断指针是否仍在按钮区域内（含少量容差） */
@@ -884,6 +1044,13 @@ function onVoicePressCancel() {
 
 /** 真正开始录音（阈值后触发） */
 function beginRecording() {
+  // 环境检测：网页版（https/file 之外）未配置代理时给出明确提示
+  const isWebView = location.protocol === 'file:';
+  if (!isWebView && !BAIDU_ASR_PROXY) {
+    showToast('网页版语音需配置代理，请用安装包或手动输入', 'warning', 4000);
+    stopRecordingUI();
+    return;
+  }
   recordSession++;
   const sid = recordSession;
   recognition = initSpeechRecognition(sid);
@@ -907,18 +1074,28 @@ function beginRecording() {
   if (liveEl) liveEl.textContent = '';
   if (voiceHint) { voiceHint.textContent = '松开发送，滑出取消'; voiceHint.classList.remove('warn'); }
 
-  try { recognition.start(); } catch (err) {
+  try {
+    const p = recognition.start();
+    if (p && p.catch) p.catch((err) => {
+      console.error('[语音] 启动失败:', err);
+      if (sid !== recordSession) return;
+      if (/denied|NotAllowed|Permission/i.test(String(err))) showToast('请允许麦克风权限', 'warning', 3000);
+      else if (/not found|NotFound/i.test(String(err))) showToast('未找到麦克风设备', 'error');
+      else showToast('无法启动录音，请重试', 'error');
+      stopRecordingUI();
+    });
+  } catch (err) {
     console.error('[语音] 启动失败:', err);
     stopRecordingUI();
     return;
   }
 
-  // 8 秒超时自动停止
+  // 10 秒超时自动停止
   clearTimeout(recordTimeout);
   recordTimeout = setTimeout(() => {
     if (isRecording && recognition && sid === recordSession) {
       showToast('录音超时，自动结束', 'warning');
-      try { recognition.stop(); } catch (e) {}
+      try { const p = recognition.stop(); if (p && p.catch) p.catch(() => {}); } catch (e) {}
     }
   }, RECORD_MAX_DURATION);
 }
@@ -926,8 +1103,8 @@ function beginRecording() {
 /** 完成录音（区域内松开）：停止并等待解析 */
 function finishRecording() {
   clearTimeout(recordTimeout);
-  if (recognition) { try { recognition.stop(); } catch (e) {} }
-  // UI 恢复在 onend 的 stopRecordingUI 中完成；此处先复位标志
+  if (recognition) { try { const p = recognition.stop(); if (p && p.catch) p.catch(() => {}); } catch (e) {} }
+  // UI 恢复在 stop 完成的 stopRecordingUI 中完成；此处先复位标志
   isRecording = false;
   resetVoiceHint();
 }
