@@ -789,7 +789,17 @@ function baiduStartRecording() {
       // 安卓 WebView：先通过原生桥确保系统麦克风权限已授权
       if (window.AndroidBridge && window.AndroidBridge.requestMicPermission) {
         try { window.AndroidBridge.requestMicPermission(); } catch (e) {}
-        await new Promise(r => setTimeout(r, 400)); // 等权限授权生效
+        // 轮询等待系统权限真正就绪（最多 3.5 秒，每 100ms 查一次）
+        if (window.AndroidBridge.isMicPermissionGranted) {
+          for (let i = 0; i < 35; i++) {
+            try {
+              if (window.AndroidBridge.isMicPermissionGranted()) break;
+            } catch (e) {}
+            await new Promise(r => setTimeout(r, 100));
+          }
+        } else {
+          await new Promise(r => setTimeout(r, 400)); // 旧桥兼容
+        }
       }
       // 获取麦克风：带自动重试（刚授权/设备瞬时被占时，重试即可成功）
       let stream = null, lastErr = null;
@@ -799,7 +809,8 @@ function baiduStartRecording() {
           break;
         } catch (e) {
           lastErr = e;
-          if (attempt < 2) await new Promise(r => setTimeout(r, 500));
+          console.error('[麦克风] 第' + (attempt + 1) + '次失败:', e && e.name, e && e.message);
+          if (attempt < 2) await new Promise(r => setTimeout(r, 1000)); // 1 秒后再试
         }
       }
       if (!stream) throw lastErr || new Error('mic_failed');
@@ -1094,11 +1105,12 @@ function beginRecording() {
     if (p && p.catch) p.catch((err) => {
       console.error('[语音] 启动失败:', err);
       if (sid !== recordSession) return;
-      const msg = String((err && err.message) ? err.message : err) + ' ' + String((err && err.name) ? err.name : '');
-      if (/denied|NotAllowed|Permission/i.test(msg)) showToast('请允许麦克风权限（设置→应用→语音记账→权限→麦克风）', 'warning', 4000);
-      else if (/not found|NotFound/i.test(msg)) showToast('未找到麦克风设备', 'error');
-      else if (/NotReadable|in use|busy|占用|track/i.test(msg)) showToast('麦克风暂不可用：请确认已允许麦克风权限，并关闭微信等正在使用麦克风的应用后重试', 'warning', 4000);
-      else if (/SecurityError|secure/i.test(msg)) showToast('当前环境禁止使用麦克风', 'error');
+      const name = String((err && err.name) ? err.name : '');
+      const msg = String((err && err.message) ? err.message : err);
+      if (/denied|NotAllowed|Permission/i.test(name + msg)) showToast('请允许麦克风权限（设置→应用→语音记账→权限→麦克风）', 'warning', 4000);
+      else if (/not found|NotFound/i.test(name + msg)) showToast('未找到麦克风设备', 'error');
+      else if (/NotReadable|in use|busy|占用|track/i.test(name + msg)) showToast('麦克风暂不可用：请先下拉手机控制中心，确认麦克风开关未关闭，并退出微信等占用麦克风的应用后重试', 'warning', 4500);
+      else if (/SecurityError|secure/i.test(name + msg)) showToast('当前环境禁止使用麦克风', 'error');
       else showToast('无法启动录音，请重试', 'error');
       stopRecordingUI();
     });
