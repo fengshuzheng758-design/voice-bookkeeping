@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>百度云语音代理 · 部署包</title>
+<style>
+  :root {
+    --bg: #f5f6fa;
+    --card: #ffffff;
+    --text: #1f2937;
+    --sub: #6b7280;
+    --primary: #2563eb;
+    --primary-dark: #1d4ed8;
+    --success: #16a34a;
+    --border: #e5e7eb;
+    --radius: 14px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    padding: 20px 16px 60px;
+    max-width: 560px;
+    margin: 0 auto;
+    line-height: 1.6;
+  }
+  h1 { font-size: 22px; margin-bottom: 6px; }
+  .sub { color: var(--sub); font-size: 14px; margin-bottom: 22px; }
+  .card {
+    background: var(--card);
+    border-radius: var(--radius);
+    padding: 18px;
+    margin-bottom: 16px;
+    box-shadow: 0 1px 3px rgba(0,0,0,.06);
+  }
+  .card h2 { font-size: 16px; margin-bottom: 10px; }
+  .btn {
+    display: block;
+    width: 100%;
+    padding: 14px;
+    border: none;
+    border-radius: 12px;
+    font-size: 17px;
+    font-weight: 600;
+    color: #fff;
+    background: var(--primary);
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .btn:active { transform: scale(.98); }
+  .btn.green { background: var(--success); }
+  .btn + .btn { margin-top: 10px; }
+  .hint { font-size: 13px; color: var(--sub); margin-top: 10px; }
+  .ok { color: var(--success); font-weight: 600; }
+  ol { padding-left: 20px; }
+  ol li { margin-bottom: 8px; font-size: 14px; }
+  code { background: #eef2ff; color: #4338ca; padding: 2px 6px; border-radius: 5px; font-size: 13px; }
+  .warn { background: #fffbeb; border: 1px solid #fde68a; border-radius: 12px; padding: 12px; font-size: 13px; color: #92400e; margin-top: 14px; }
+</style>
+</head>
+<body>
+
+  <h1>百度云语音代理 · 部署包</h1>
+  <div class="sub">给你的函数 <code>yuyin-proxy</code> 用的代码包（含你的百度 Key）</div>
+
+  <div class="card">
+    <h2>第 1 步：下载代码包</h2>
+    <button class="btn" id="dl">⬇ 下载 yuyin-proxy.zip</button>
+    <div class="hint" id="dlHint">点一下按钮，浏览器会自动下载一个 <code>yuyin-proxy.zip</code>（约 1.4KB）。<br>
+    手机上如果没反应，点右上角「···」选「在浏览器中打开」再试。</div>
+  </div>
+
+  <div class="card">
+    <h2>第 2 步：上传到百度云</h2>
+    <ol>
+      <li>打开百度智能云 → 函数计算 CFC → 进入函数 <code>yuyin-proxy</code></li>
+      <li>点「代码」标签 → 找「<b>上传代码包</b>」按钮</li>
+      <li>选择刚下载的 <code>yuyin-proxy.zip</code></li>
+      <li>确认执行处理程序是 <code>index.handler</code></li>
+      <li>点右上角「发布新版本」→ 确定</li>
+    </ol>
+    <div class="warn">💡 如果找不到「上传代码包」按钮，点下面的「复制代码」，粘贴进编辑框也行（效果一样）。</div>
+    <button class="btn green" id="cp" style="margin-top:12px;">📋 复制代码（备用方案）</button>
+    <div class="hint" id="cpHint"></div>
+  </div>
+
+<script>
+(function () {
+  var B64 = "UEsDBBQAAAAIAO6wBV3PqW/nvwQAAFsKAAAIABwAaW5kZXgucHlVVAkAA59Dc2qfQ3NqdXgLAAEE" +
+"AAAAAAQAAAAAvVbdT9tWFH/PX3EF0hx3iRNa1qFM0ZSFZDDUgvjQtqfIsS+JIfF17r2GhCgSassE" +
+"0qq22peY0JDGRHkptNo6KtZu/wwOyVP/hZ1rO4mdtF2f5hf73nvO73z9zrkeR/FrcaQR3TBLKWTz" +
+"1fiU2ImMo87Zk+7h753Tp50/jlEcXe3/7Vwct/cvOndfXV48Qtl81he5/Ovo6uE3r1/udrfvdHfu" +
+"o4RFSb2BnPs/XL7Y7pyfXX3/7PXLPUBs7223D/Y6Z+ftZ3e6d185Dx45u09RmXOLpRKJer2uaKta" +
+"HNexZnOsFNeUomrodlHDikaqHqrrl9C/fPWd8+IYqRo3iImcJz+1T5873144u+DIz80xb38sNcbJ" +
+"OjbHWqi9+yMKbFOskZJpbOGxGFIUpRWJGFWLUI7WGDF73zatVIyiQnHNxowP7VoqZTgS+SwzO71S" +
+"yCzMFuZyX6M0kj6+nZ/KF+lXU1ul/M3phXyVlbbKmekvJV90KZddzC33pHVWnWUrtDZ54/OZuVJ9" +
+"bV2t8y+2ZiZ4bbY8s7JRkyKR7PziUmEml5nOLS6BSjOC4JEymoYZi2eJySmpxDOVCtmMz1OjZJhS" +
+"CknXpNg75G5hXiY6E4IL80vLMTS/sDw7f3vpnUozWNUxdZXEATZ5fLlh4bfo3FLr8UwJC+mpm5PJ" +
+"pBSBHEd0vIrKqqlXMI3iDYCIAfUAq87llAvDacP7EM84cn67B9TquYe6v95rH217BAC+tZ8/6Dze" +
+"dfZPOucnzuGhc7rn7Jy0D4AEfzr/7HQPtgXtemCCZoWqGzhk0TWulDCPSuLAS4gUQ5IkI0KDx9XA" +
+"UR/MWA3iKbZlQUAySkNFe6kchCEeirlNTXgxK9psxdD1ZDKGDFYgliAkSy9TG8uRQOSdx0ftXx72" +
+"ud4/KRK9EfZf7HheS82WFHTRYIbJuGpqOCqEYohxKof90lWuApxgvVIhqs5cyUGguMLwGzWE2MBf" +
+"vw3T7qnnlrfl5y3oVU8WcuU251CmVMsorONGGMsy5rAfZKjhQpoMa5DmEWVve0h/0IUhCOht0PU4" +
+"IWaSaljhIURUm5cT15VkwvX90xJVTV7g0AdprWJATQpgTIe3oVaYFML2H+kDX9DQ081Wb+E5CRuS" +
+"rKwSWlV5dEQ5OHiUmk04jvrJkmNvOhzkQ5ZDYJsGLw8NNwWWxMJmFN4xxI0qJjZPT3wkI5Uhmhrx" +
+"BYhsV3iYORTAVD0qKzoMVx1HJfc2kYaMBzvBQ3krPfpDeogiltoQFnvWdbtqsagouKxgM2R6yHIN" +
+"VIbiXvTeo9nuc2CD+BxwCcAw3cC0AIkHagubad+b2AhC2RuY6WZ4XsJEVC2rYmiqCDQhQpBa718g" +
+"WA8KdCP5PxcoNMckTGnBJBBRfAL6XKzgthMB2ua6STZNv5iwgT70v2H2TSYnPYu4rmGLo5z7EkWH" +
+"UALT5j1teX8bsEGoZwimXBTLkFLvvnH1RaXE/FO5zdLDwzcPvYr9wegXrX/RulT4r/p9grSyaDye" +
+"9jLqcaEVBIQ7AnzA0eBt7mXBHdQ9X0aib0qe01koGJh2XZfK/as4CAcH7l0ADkqe7R7GIJIQmLcY" +
+"EDeA638FznzooY6LIWwym+KCyjTD8DPpR/8vUEsBAh4DFAAAAAgA7rAFXc+pb+e/BAAAWwoAAAgA" +
+"GAAAAAAAAQAAAKSBAAAAAGluZGV4LnB5VVQFAAOfQ3NqdXgLAAEEAAAAAAQAAAAAUEsFBgAAAAAB" +
+"AAEATgAAAAEFAAAAAA==";
+
+  var CODE = [
+"# -*- coding: utf-8 -*-",
+"# 语音记账 - 百度智能云 CFC 语音代理（适配 /proxy 单一路由）",
+"# 所有请求都发到 https://xxx.cfc-execute.bj.baidubce.com/proxy",
+"# 请求体带 action 字段区分：{\"action\":\"token\"} 或 {\"action\":\"recognize\", ...}",
+"",
+"import json",
+"import urllib.request",
+"import urllib.parse",
+"",
+"BAIDU_API_KEY = '7NF8FbrX8zgF6DPFmsgzhADW'",
+"BAIDU_SECRET_KEY = 'dsmIsUrq43GHKgxjkaxtJzH1tqIhHUvq'",
+"",
+"CORS_HEADERS = {",
+"    'Access-Control-Allow-Origin': '*',",
+"    'Access-Control-Allow-Methods': 'POST, OPTIONS',",
+"    'Access-Control-Allow-Headers': 'Content-Type',",
+"    'Access-Control-Max-Age': '86400'",
+"}",
+"",
+"",
+"def handler(event, context):",
+"    try:",
+"        # 处理 OPTIONS 预检请求（浏览器跨域安全机制必需）",
+"        http_method = event.get('httpMethod', '') or event.get('method', '')",
+"        if http_method.upper() == 'OPTIONS':",
+"            return resp({}, 200, is_options=True)",
+"",
+"        # 解析请求体",
+"        body = event.get('body') or '{}'",
+"        if isinstance(body, str):",
+"            data = json.loads(body)",
+"        else:",
+"            data = body",
+"",
+"        action = data.get('action', '')",
+"",
+"        if action == 'token':",
+"            api_key = data.get('apiKey') or BAIDU_API_KEY",
+"            secret_key = data.get('secretKey') or BAIDU_SECRET_KEY",
+"            url = ('https://aip.baidubce.com/oauth/2.0/token?grant_type=client_credentials'",
+"                   '&client_id={}&client_secret={}').format(",
+"                urllib.parse.quote(api_key), urllib.parse.quote(secret_key))",
+"            with urllib.request.urlopen(url, timeout=15) as r:",
+"                result = json.loads(r.read().decode('utf-8'))",
+"            return resp(result)",
+"",
+"        if action == 'recognize':",
+"            payload = json.dumps(data).encode('utf-8')",
+"            req = urllib.request.Request(",
+"                'https://vop.baidu.com/server_api', data=payload,",
+"                headers={'Content-Type': 'application/json'})",
+"            with urllib.request.urlopen(req, timeout=30) as r:",
+"                result = json.loads(r.read().decode('utf-8'))",
+"            return resp(result)",
+"",
+"        return resp({'err_no': -1, 'err_msg': 'unknown action: ' + action}, 404)",
+"    except Exception as e:",
+"        return resp({'err_no': -1, 'err_msg': 'proxy error: ' + str(e)})",
+"",
+"",
+"def resp(data, status=200, is_options=False):",
+"    headers = {",
+"        'Content-Type': 'application/json; charset=utf-8',",
+"    }",
+"    headers.update(CORS_HEADERS)",
+"    if is_options:",
+"        return {'statusCode': 200, 'headers': CORS_HEADERS, 'body': ''}",
+"    return {",
+"        'statusCode': status,",
+"        'headers': headers,",
+"        'body': json.dumps(data, ensure_ascii=False)",
+"    }"
+  ].join("\n");
+
+  function b64ToBytes(b64) {
+    var bin = atob(b64);
+    var len = bin.length;
+    var bytes = new Uint8Array(len);
+    for (var i = 0; i < len; i++) bytes[i] = bin.charCodeAt(i);
+    return bytes;
+  }
+
+  document.getElementById("dl").addEventListener("click", function () {
+    try {
+      var bytes = b64ToBytes(B64);
+      var blob = new Blob([bytes], { type: "application/zip" });
+      var url = URL.createObjectURL(blob);
+      var a = document.createElement("a");
+      a.href = url;
+      a.download = "yuyin-proxy.zip";
+      document.body.appendChild(a);
+      a.click();
+      setTimeout(function () { URL.revokeObjectURL(url); a.remove(); }, 1500);
+      document.getElementById("dlHint").innerHTML = '<span class="ok">✓ 已开始下载 yuyin-proxy.zip</span>，去「下载/文件管理」里找它。';
+    } catch (e) {
+      document.getElementById("dlHint").innerHTML = "下载失败：" + e.message;
+    }
+  });
+
+  document.getElementById("cp").addEventListener("click", function () {
+    var done = false;
+    function fallback() {
+      var ta = document.createElement("textarea");
+      ta.value = CODE;
+      ta.style.position = "fixed";
+      ta.style.opacity = "0";
+      document.body.appendChild(ta);
+      ta.select();
+      try { document.execCommand("copy"); done = true; } catch (e) {}
+      ta.remove();
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(CODE).then(function () {
+        document.getElementById("cpHint").innerHTML = '<span class="ok">✓ 代码已复制！</span>去百度云编辑框里长按 → 粘贴。';
+      }, fallback);
+    } else {
+      fallback();
+    }
+    if (done) document.getElementById("cpHint").innerHTML = '<span class="ok">✓ 代码已复制！</span>去百度云编辑框里长按 → 粘贴。';
+  });
+})();
+</script>
+</body>
+</html>

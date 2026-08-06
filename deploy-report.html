@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>语音记账 · 部署完成报告</title>
+<style>
+  body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;background:#f0fdf4;color:#1f2937;max-width:560px;margin:0 auto;padding:24px 16px 60px;line-height:1.6}
+  .hero{background:linear-gradient(135deg,#16a34a,#15803d);color:#fff;border-radius:16px;padding:22px;margin-bottom:18px}
+  .hero h1{margin:0 0 6px;font-size:22px}
+  .hero p{margin:0;font-size:14px;opacity:.95}
+  .card{background:#fff;border:1px solid #d1fae5;border-radius:14px;padding:16px;margin-bottom:14px}
+  .card h2{font-size:16px;margin:0 0 10px}
+  table{width:100%;border-collapse:collapse;font-size:13.5px}
+  td,th{padding:7px 8px;border-bottom:1px solid #e5e7eb;text-align:left}
+  th{color:#6b7280;font-weight:600}
+  .ok{color:#16a34a;font-weight:700}
+  code{background:#eef2ff;color:#4338ca;padding:1px 6px;border-radius:5px;font-size:12.5px;word-break:break-all}
+  .step{display:flex;gap:10px;margin-bottom:10px;font-size:14px}
+  .num{background:#16a34a;color:#fff;width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0;margin-top:2px}
+  .warn{background:#fffbeb;border:1px solid #fde68a;border-radius:10px;padding:10px 12px;font-size:13px;color:#92400e;margin-top:12px}
+</style>
+</head>
+<body>
+
+  <div class="hero">
+    <h1>✅ 语音功能全部部署完成</h1>
+    <p>百度云代理 + 网页前端均已上线，真实浏览器测试通过</p>
+  </div>
+
+  <div class="card">
+    <h2>📊 验证结果</h2>
+    <table>
+      <tr><th>项目</th><th>状态</th></tr>
+      <tr><td>百度云 CFC 代理（获取 token）</td><td class="ok">✅ 通过</td></tr>
+      <tr><td>语音识别转发（真实音频）</td><td class="ok">✅ 通过</td></tr>
+      <tr><td>浏览器跨域（CORS）</td><td class="ok">✅ 通过</td></tr>
+      <tr><td>网页前端配置代理地址</td><td class="ok">✅ 已上线</td></tr>
+      <tr><td>真实浏览器端到端调用</td><td class="ok">✅ 通过</td></tr>
+    </table>
+  </div>
+
+  <div class="card">
+    <h2>🌐 你的语音记账网页</h2>
+    <p style="font-size:14px;margin:0 0 6px">打开下面的网址（手机电脑都可以）：</p>
+    <code>https://fengshuzheng758-design.github.io/voice-bookkeeping/</code>
+    <p style="font-size:13px;color:#6b7280;margin-top:8px">代理地址：<code>https://c90gpx6p8yr0a.cfc-execute.bj.baidubce.com/proxy</code></p>
+  </div>
+
+  <div class="card">
+    <h2>🎤 怎么用语音记账</h2>
+    <div class="step"><div class="num">1</div><div>打开上面的网页，点输入框旁边的<b>麦克风按钮</b></div></div>
+    <div class="step"><div class="num">2</div><div><b>按住说话</b>，比如「午饭 25 块」</div></div>
+    <div class="step"><div class="num">3</div><div><b>松开</b>，自动识别成文字，确认后记入账单</div></div>
+    <div class="warn">如果之前打开过旧版网页，先<b>刷新一次</b>（或关闭页面重新打开），让浏览器加载最新版。</div>
+  </div>
+
+</body>
+</html>
