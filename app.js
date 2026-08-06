@@ -768,9 +768,10 @@ const RECORD_MAX_DURATION = 10000; // 录音超时(ms)（百度标准版最长 6
 const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
   (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 
-/** 语音能力检测：有麦克风权限能力即可（识别走百度云端，不依赖 Google） */
+/** 语音能力检测：原生录音桥存在（APK）或支持 getUserMedia（浏览器）即可 */
 function isSpeechSupported() {
-  return !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia);
+  return !!(window.AndroidBridge && window.AndroidBridge.startRecording) ||
+         !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia);
 }
 
 /** 安全震动 */
@@ -781,8 +782,9 @@ function vibrate(pattern) {
 // ---------- 百度录音与识别核心 ----------
 
 let baiduRec = null; // { ctx, stream, processor, source, samples, sampleRate }
+let nativeRecActive = false; // 原生录音通道（AudioRecord）是否激活
 
-/** 开始录音：采集 44.1kHz 单声道 PCM */
+/** 开始录音：优先原生 AudioRecord（荣耀/华为 WebView 兼容），失败回退 getUserMedia */
 function baiduStartRecording() {
   return new Promise(async (resolve, reject) => {
     try {
@@ -800,6 +802,17 @@ function baiduStartRecording() {
         } else {
           await new Promise(r => setTimeout(r, 400)); // 旧桥兼容
         }
+      }
+      // ★ 原生录音通道（绕开 WebView getUserMedia，最稳）
+      if (window.AndroidBridge && window.AndroidBridge.startRecording) {
+        let status = '';
+        try { status = window.AndroidBridge.startRecording() || ''; } catch (e) { status = 'bridge_error'; }
+        if (status === 'ok') {
+          nativeRecActive = true;
+          resolve();
+          return;
+        }
+        console.warn('[麦克风] 原生录音启动失败，回退 getUserMedia:', status);
       }
       // 获取麦克风：带自动重试（刚授权/设备瞬时被占时，重试即可成功）
       let stream = null, lastErr = null;
@@ -831,8 +844,22 @@ function baiduStartRecording() {
   });
 }
 
-/** 停止录音：重采样 16kHz → 16bit PCM → WAV，返回 { base64, len } */
+/** 停止录音：优先原生通道，否则重采样 16kHz → 16bit PCM → WAV，返回 { base64, len } */
 function baiduStopRecording() {
+  // ★ 原生录音通道
+  if (nativeRecActive) {
+    nativeRecActive = false;
+    try {
+      const result = window.AndroidBridge && window.AndroidBridge.stopRecording ? window.AndroidBridge.stopRecording() : '';
+      if (!result) return null;
+      const data = JSON.parse(result);
+      if (!data || !data.base64 || !data.len) return null;
+      return { base64: data.base64, len: data.len };
+    } catch (e) {
+      console.error('[录音] 原生停止失败:', e);
+      return null;
+    }
+  }
   if (!baiduRec) return null;
   const { ctx, stream, processor, source, samples, sampleRate } = baiduRec;
   // 立即停止采集
@@ -1001,7 +1028,10 @@ function initSpeechRecognition(sessionId) {
       }
     },
     abort: () => {
-      try { if (baiduRec) baiduStopRecording(); } catch (e) {}
+      try {
+        if (nativeRecActive) baiduStopRecording();
+        if (baiduRec) baiduStopRecording();
+      } catch (e) {}
     }
   };
 }
